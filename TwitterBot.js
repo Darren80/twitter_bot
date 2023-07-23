@@ -6,26 +6,30 @@ const http = require('http');
 const https = require('https');
 const axiosRetry = require('axios-retry');
 const ProgressBar = require('progress');
+const cron = require('node-cron');
 
 const TwitterApi = require('twitter-api-v2').default;
 
 // OAuth 1.0a (User context)
 const userClient = new TwitterApi({
-  appKey: 'CdUuP6MQ0CsHcEpVK7Q8TXS7a',
-  appSecret: 'zBHbTN7V9tm10Ee6y5dhJE5IVViGQCW1XHo7u5LAILOC0Mh1kN',
+  appKey: process.env.APP_KEY,
+  appSecret: process.env.APP_SECRET,
   // Following access tokens are not required if you are
   // at part 1 of user-auth process (ask for a request token)
   // or if you want a app-only client (see below)
-  accessToken: '827636477328838658-pvpnFwNbL5XyYFTKVQjEJPU40bUxjrY',
-  accessSecret: 'xyxUYP4vTE7DBLJVI4bHAiRO7cApg5OfwbtshP45d7ltU',
+  accessToken: process.env.ACCESS_TOKEN,
+  accessSecret: process.env.ACCESS_SECRET,
 });
 
 // Instantiate with desired auth type (here's Bearer v2 auth)
-// const twitterClient = new TwitterApi('AAAAAAAAAAAAAAAAAAAAAHTIowEAAAAAsRaRqrskcTOtT%2BEaodM3NEXJZWk%3DYTcvRF4mAwk0PstDlOHvysrUIvsBzgl3LWZxqmLhIL4AEuDlPQ');
+// const twitterClient = new TwitterApi('');
 
 // Axios
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
+
+// Name of the file to store the posted clip IDs
+const postedClipsFile = path.join(__dirname, 'postedClips.txt');
 
 axios.defaults.httpAgent = httpAgent;
 axios.defaults.httpsAgent = httpsAgent;
@@ -33,12 +37,12 @@ axios.defaults.timeout = 360000;
 
 const client_secret = process.env.REACT_APP_TWITCH_CLIENT_SECRET;
 const client_id = process.env.REACT_APP_TWITCH_CLIENT_ID;
-const username = 'xqc';
 let accessToken = '';
 let userID = '';
-const numClips = 1;
+const numberOfClipsToUpload = 3;
 
-async function getTwitchClips() {
+async function getTwitchClips(streamerName) {
+  // Authenticate with Twitch
   const url = `https://id.twitch.tv/oauth2/token?client_id=${client_id}&client_secret=${client_secret}&grant_type=client_credentials`;
   // console.log(process.env);
   const response = await fetch(url, {
@@ -47,11 +51,11 @@ async function getTwitchClips() {
   });
   const data = await response.json();
   accessToken = data.access_token;
-  await getUserID();
+  await getUserID(streamerName);
 }
 
-async function getUserID() {
-  const response = await fetch(`https://api.twitch.tv/helix/users?login=${username}`, {
+async function getUserID(streamerName) {
+  const response = await fetch(`https://api.twitch.tv/helix/users?login=${streamerName}`, {
     headers: {
       'Client-ID': client_id,
       'Authorization': `Bearer ${accessToken}`,
@@ -81,16 +85,17 @@ async function getClips() {
 async function getMostViewedClips(clips) {
   clips.sort((a, b) => b.views - a.views);
 
-  const topClips = clips.slice(0, numClips);
+  const topClips = clips.slice(0, numberOfClipsToUpload);
   await downloadClips(topClips);
 }
 
 async function downloadClips(clips) {
-  // for (let i = 0; i < clips.length && i < clips.length; i++) {
-  await downloadClip(clips[0]);
-  // }
+  for (let i = 0; i < clips.length && i < clips.length; i++) {
+    await downloadClip(clips[i]);
+  }
 }
 
+let topClipsPath = [];
 async function downloadClip(clip) {
   const vodUrl = clip.thumbnail_url.split('-preview', 1)[0] + '.mp4'; console.log(vodUrl);
 
@@ -109,8 +114,14 @@ async function downloadClip(clip) {
     total: totalBytes
   });
 
-  const localFilePath = path.join(__dirname, `/vids/${clip.id}.mp4`);
+  console.log(clip);
+
+  // If the directory doesn't exist, create it
+  if (!fs.existsSync(path.join(__dirname, `/vids/${clip.broadcaster_name}`))) { fs.mkdirSync(path.join(__dirname, `/vids/${clip.broadcaster_name}`)); }
+
+  const localFilePath = path.join(__dirname, `/vids/${clip.broadcaster_name}/${clip.id}.mp4`);
   const fileStream = fs.createWriteStream(localFilePath);
+
   response.data.on('data', (chunk) => progressBar.tick(chunk.length));
   response.data.pipe(fileStream);
 
@@ -120,7 +131,9 @@ async function downloadClip(clip) {
   return new Promise((resolve, reject) => {
     fileStream.on('finish', () => {
       console.log(`\nDownloaded: ${clip.id}.mp4`);
-      postToTwitter(localFilePath, clip.title);
+      topClipsPath.push(localFilePath);
+      // Post to Twitter
+      postToTwitter(clip.title);
       resolve();
     });
     fileStream.on('error', reject);
@@ -128,20 +141,56 @@ async function downloadClip(clip) {
 }
 
 // Twitter
-async function postToTwitter(localFilePath, title) {
+async function postToTwitter(title) {
 
-  const { size } = fs.statSync(localFilePath);
+  // Read the posted clip IDs from the file into a Set
+  let postedClips;
+  try {
+    const fileContent = fs.readFileSync(postedClipsFile, 'utf-8');
+    postedClips = new Set(fileContent.split('\n'));
+  } catch (err) {
+    // If the file doesn't exist, start with an empty Set
+    if (err.code === 'ENOENT') {
+      postedClips = new Set();
+    } else {
+      throw err;
+    }
+  }
+
+  // if postedClipsFile already has the posted clip then remove it from topClipsPath.
+  if (postedClips.has(topClipsPath[0])) {
+    console.log('Already posted:', topClipsPath[0]);
+    topClipsPath.shift();
+    return;
+  }
+
+  // Check if there are any clips to post.
+  if (topClipsPath.length === 0) {
+    console.log('No more clips to post.');
+    return;
+  }
+
+  // Treat topClips like a queue
+  const clipPath = topClipsPath.shift();
+  console.log('Posting to Twitter:', clipPath);
+
+  const { size } = fs.statSync(clipPath);
   console.log('Uploading video of size', size, 'bytes');
 
   // Upload the video
-  // You can upload media easily!
-  const media_id = await userClient.v1.uploadMedia(localFilePath);
-  console.log('Media ID:', media_id);
+  const media_id = await userClient.v1.uploadMedia(clipPath);
   // Tweet the video
   const newTweet = await userClient.v2.tweet(title, {
     media: { media_ids: [media_id] }
   });
   console.log('Tweet ID:', newTweet);
+
+  // Add the posted clip to the Set
+  postedClips.add(newTweet);
+  // Then write the Set back to the file
+  fs.appendFile(postedClipsFile, clip.id + '\n');
+  console.log('Wrote to file:', postedClipsFile);
+
   // Fulfill the promise
   return newTweet;
 }
@@ -155,5 +204,8 @@ axiosRetry(axios, {
   },
 });
 
-getTwitchClips();
-setInterval(getTwitchClips, 3600000);
+// Schedule the jobs
+cron.schedule('0 19 * * *', getTwitchClips, { timezone: "GMT" });
+cron.schedule('0 19-21 * * *', postToTwitter, { timezone: "GMT" });
+
+getTwitchClips('kaicenat');
