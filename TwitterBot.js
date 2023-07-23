@@ -6,7 +6,22 @@ const http = require('http');
 const https = require('https');
 const axiosRetry = require('axios-retry');
 const ProgressBar = require('progress');
-const Twit = require('twit');
+
+const TwitterApi = require('twitter-api-v2').default;
+
+// OAuth 1.0a (User context)
+const userClient = new TwitterApi({
+  appKey: 'CdUuP6MQ0CsHcEpVK7Q8TXS7a',
+  appSecret: 'zBHbTN7V9tm10Ee6y5dhJE5IVViGQCW1XHo7u5LAILOC0Mh1kN',
+  // Following access tokens are not required if you are
+  // at part 1 of user-auth process (ask for a request token)
+  // or if you want a app-only client (see below)
+  accessToken: '827636477328838658-pvpnFwNbL5XyYFTKVQjEJPU40bUxjrY',
+  accessSecret: 'xyxUYP4vTE7DBLJVI4bHAiRO7cApg5OfwbtshP45d7ltU',
+});
+
+// Instantiate with desired auth type (here's Bearer v2 auth)
+// const twitterClient = new TwitterApi('AAAAAAAAAAAAAAAAAAAAAHTIowEAAAAAsRaRqrskcTOtT%2BEaodM3NEXJZWk%3DYTcvRF4mAwk0PstDlOHvysrUIvsBzgl3LWZxqmLhIL4AEuDlPQ');
 
 // Axios
 const httpAgent = new http.Agent({ keepAlive: true });
@@ -21,7 +36,7 @@ const client_id = process.env.REACT_APP_TWITCH_CLIENT_ID;
 const username = 'xqc';
 let accessToken = '';
 let userID = '';
-const numClips = 3;
+const numClips = 1;
 
 async function getTwitchClips() {
   const url = `https://id.twitch.tv/oauth2/token?client_id=${client_id}&client_secret=${client_secret}&grant_type=client_credentials`;
@@ -71,9 +86,9 @@ async function getMostViewedClips(clips) {
 }
 
 async function downloadClips(clips) {
-  for (let i = 0; i < clips.length && i < clips.length; i++) {
-    await downloadClip(clips[i]);
-  }
+  // for (let i = 0; i < clips.length && i < clips.length; i++) {
+  await downloadClip(clips[0]);
+  // }
 }
 
 async function downloadClip(clip) {
@@ -94,7 +109,7 @@ async function downloadClip(clip) {
     total: totalBytes
   });
 
-  const localFilePath = path.join(__dirname, `${clip.id}.mp4`);
+  const localFilePath = path.join(__dirname, `/vids/${clip.id}.mp4`);
   const fileStream = fs.createWriteStream(localFilePath);
   response.data.on('data', (chunk) => progressBar.tick(chunk.length));
   response.data.pipe(fileStream);
@@ -105,7 +120,7 @@ async function downloadClip(clip) {
   return new Promise((resolve, reject) => {
     fileStream.on('finish', () => {
       console.log(`\nDownloaded: ${clip.id}.mp4`);
-      await postToTwitter(localFilePath, clip.title);
+      postToTwitter(localFilePath, clip.title);
       resolve();
     });
     fileStream.on('error', reject);
@@ -114,14 +129,22 @@ async function downloadClip(clip) {
 
 // Twitter
 async function postToTwitter(localFilePath, title) {
-  const T = new Twit({
-    consumer_key: '...',
-    consumer_secret: '...',
-    access_token: '...',
-    access_token_secret: '...'
-  });
-  
 
+  const { size } = fs.statSync(localFilePath);
+  console.log('Uploading video of size', size, 'bytes');
+
+  // Upload the video
+  // You can upload media easily!
+  const media_id = await userClient.v1.uploadMedia(localFilePath);
+  console.log('Media ID:', media_id);
+  // Tweet the video
+  const newTweet = await userClient.v2.tweet(title, {
+    media: { media_ids: [media_id] }
+  });
+  console.log('Tweet ID:', newTweet);
+  // Fulfill the promise
+  return newTweet;
+}
 // Configure retries
 axiosRetry(axios, {
   retries: 3, // number of retry when a network error happens
