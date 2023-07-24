@@ -52,14 +52,16 @@ class TwitchClipDownloader {
     // Start running the bot
     console.log('Starting the bot...');
     this.setupTwitterClient(twitterClient);
-    // The postTime should be in the format '00 00 * * *'
-    cron.schedule(postTime, () => {
-      if (!this.isPosting) {
-        this.isPosting = true;
-        this.postToTwitter();
-        this.isPosting = false;
-      }
-    }, { timezone: "Etc/GMT" });
+    // The postTime should an array with items in the format '00 00 * * *'
+    for (const schedule of postTime) {
+      cron.schedule(schedule, () => {
+        if (!this.isPosting) {
+          this.isPosting = true;
+          this.postToTwitter();
+          this.isPosting = false;
+        }
+      }, { timezone: "Etc/GMT" });
+    }
 
     // The downloadTime should be in the format '00 00 * * *'
     cron.schedule(downloadTime,() => {
@@ -258,25 +260,18 @@ class TwitchClipDownloader {
 const twitterClients = ['XQC', 'NMPLOL', 'KAICENAT', 'HASANABI', 'MIZKIF'];
 // not on Twitch ----> ADINROSS, ISHOWSPEED, JIDION, DESTINY
 const streamers = ['xqc', 'nmplol', 'kaicenat', 'hasanabi', 'mizkif'];
-const postTimes = ['0 18-20 * * *'];
 
-// const xqc = new TwitchClipDownloader('XQC', 'xqc', '45 16 * * *', '0,25,50 18 * * *');
-// const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '0 17 * * *', '5,30,55 18 * * *');
-// const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '15 17 * * *', '10,35,59 18 * * *');
-// const kaicenat2 = new TwitchClipDownloader('KAICENAT', 'kaicenat', '* * * * 1', '0 19 * * *'); // DEBUG
-// const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '30 17 * * *', '15,40 18 * * *');
-// const hasanabi2 = new TwitchClipDownloader('HASANABI', 'hasanabi', '* * * * 1', '5 19 * * *'); // DEBUG
-// const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '45 17 * * *', '20,45 18 * * *');
-// const mizkif2 = new TwitchClipDownloader('MIZKIF', 'mizkif', '* * * * 1', '10 19 * * *'); // DEBUG
+const xqc = new TwitchClipDownloader('XQC', 'xqc', '0 15 * * *', ['0,25,50 16 * * *']);
+const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '10 15 * * *', ['5,30,55 16 * * *']);
+const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '20 15 * * *', ['10,35,59 16 * * *', '0 17 * * *']);
+const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '30 15 * * *', ['15,40 16 * * *', '5 17 * * *']);
+const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '40 15 * * *', ['20,45 16 * * *', '10 17 * * *']);
 
-const xqc = new TwitchClipDownloader('XQC', 'xqc', '10 2 * * *', '0,25,50 3 * * *');
-const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '20 2 * * *', '5,30,55 3 * * *');
-const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '30 2 * * *', '10,35,59 3 * * *');
-const kaicenat2 = new TwitchClipDownloader('KAICENAT', 'kaicenat', '* * * 1 *', '0 4 * * *'); // DEBUG
-const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '40 2 * * *', '15,40 3 * * *');
-const hasanabi2 = new TwitchClipDownloader('HASANABI', 'hasanabi', '* * * 1 *', '5 4 * * *'); // DEBUG
-const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '50 2 * * *', '20,45 3 * * *');
-const mizkif2 = new TwitchClipDownloader('MIZKIF', 'mizkif', '* * * 1 *', '10 4 * * *'); // DEBUG
+// const xqc = new TwitchClipDownloader('XQC', 'xqc', '10 2 * * *', ['0,25,50 3 * * *']);
+// const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '20 2 * * *', ['5,30,55 3 * * *']);
+// const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '30 2 * * *', ['10,35,59 3 * * *', '0 4 * * *']);
+// const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '40 2 * * *', ['15,40 3 * * *', '5 4 * * *']);
+// const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '50 2 * * *', ['20,45 3 * * *', '10 4 * * *']);
 
 // DUBUG
 // topClips.push({ localFilePath: './vids/Nmplol/AltruisticSparklingToadTBTacoRight-Yf15KIrP0XGmCa_m.mp4', clip: { id: '1' } });
