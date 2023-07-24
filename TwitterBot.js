@@ -52,19 +52,18 @@ class TwitchClipDownloader {
     // Start running the bot
     console.log('Starting the bot...');
     this.setupTwitterClient(twitterClient);
-    this.getTwitchClips(streamerName);
     // The postTime should be in the format '00 00 * * *'
-    cron.schedule(postTime, async () => {
+    cron.schedule(postTime, () => {
       if (!this.isPosting) {
         this.isPosting = true;
-        await this.postToTwitter();
+        this.postToTwitter();
         this.isPosting = false;
       }
     }, { timezone: "Etc/GMT" });
 
     // The downloadTime should be in the format '00 00 * * *'
-    cron.schedule(downloadTime, async () => {
-      await this.getTwitchClips(streamerName);
+    cron.schedule(downloadTime,() => {
+      this.getTwitchClips(streamerName);
     }, { timezone: "Etc/GMT" });
   }
 
@@ -273,11 +272,11 @@ const postTimes = ['0 18-20 * * *'];
 const xqc = new TwitchClipDownloader('XQC', 'xqc', '10 2 * * *', '0,25,50 3 * * *');
 const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '20 2 * * *', '5,30,55 3 * * *');
 const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '30 2 * * *', '10,35,59 3 * * *');
-const kaicenat2 = new TwitchClipDownloader('KAICENAT', 'kaicenat', '* * * * 1', '0 4 * * *'); // DEBUG
+const kaicenat2 = new TwitchClipDownloader('KAICENAT', 'kaicenat', '* * * 1 *', '0 4 * * *'); // DEBUG
 const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '40 2 * * *', '15,40 3 * * *');
-const hasanabi2 = new TwitchClipDownloader('HASANABI', 'hasanabi', '* * * * 1', '5 4 * * *'); // DEBUG
+const hasanabi2 = new TwitchClipDownloader('HASANABI', 'hasanabi', '* * * 1 *', '5 4 * * *'); // DEBUG
 const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '50 2 * * *', '20,45 3 * * *');
-const mizkif2 = new TwitchClipDownloader('MIZKIF', 'mizkif', '* * * * 1', '10 4 * * *'); // DEBUG
+const mizkif2 = new TwitchClipDownloader('MIZKIF', 'mizkif', '* * * 1 *', '10 4 * * *'); // DEBUG
 
 // DUBUG
 // topClips.push({ localFilePath: './vids/Nmplol/AltruisticSparklingToadTBTacoRight-Yf15KIrP0XGmCa_m.mp4', clip: { id: '1' } });
