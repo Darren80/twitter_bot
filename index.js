@@ -17,6 +17,11 @@ app.use((req, res, next) => {
 }
 );
 
+// Health check endpoint
+app.get('/', (req, res) => {
+    res.send('Hello World!');
+});
+
 // Start the twitter bot
 app.get('/start', (req, res) => {
     console.log('Starting the bot...');
