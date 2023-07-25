@@ -33,7 +33,7 @@ class TwitchClipDownloader {
     this.client_id = process.env.REACT_APP_TWITCH_CLIENT_ID;
     this.accessToken = '';
     this.userID = '';
-    this.numberOfClipsToUpload = 3;
+    this.numberOfClipsToUpload = 2;
     this.userClient = [];
     this.postedClipsFile = path.join(__dirname, '/postedClips.txt');
     this.topClips = [];
@@ -46,14 +46,17 @@ class TwitchClipDownloader {
     this.downloadClips = this.downloadClips.bind(this);
     this.downloadClip = this.downloadClip.bind(this);
     this.postToTwitter = this.postToTwitter.bind(this);
+    this.deleteClipById = this.deleteClipById.bind(this);
 
     this.isPosting = false;
+    this.isPostingClips = [];
 
     // Start running the bot
     console.log('Starting the bot...');
     this.setupTwitterClient(twitterClient);
     // The postTime should an array with items in the format '00 00 * * *'
     for (const schedule of postTime) {
+      console.log(schedule);
       cron.schedule(schedule, () => {
         if (!this.isPosting) {
           this.isPosting = true;
@@ -64,7 +67,7 @@ class TwitchClipDownloader {
     }
 
     // The downloadTime should be in the format '00 00 * * *'
-    cron.schedule(downloadTime,() => {
+    cron.schedule(downloadTime, () => {
       this.getTwitchClips(streamerName);
     }, { timezone: "Etc/GMT" });
   }
@@ -165,7 +168,7 @@ class TwitchClipDownloader {
       const totalBytes = parseInt(response.headers['content-length'], 10);
       if (fileStats.size === totalBytes) {
         this.topClips.push({ localFilePath, clip });
-        console.log(`File ${clip.title} already exists. Skipping download.\n`);
+        console.log(`File "${clip.title}" already exists. Skipping download.\n`);
         return;
       }
     }
@@ -193,13 +196,17 @@ class TwitchClipDownloader {
   // Twitter
   async postToTwitter() {
 
-    console.log(this.topClips.length);
 
     // Check if there are any clips to post.
     if (this.topClips.length === 0) {
       console.log('Nothing to upload.');
       return;
     }
+
+    const clipID = this.topClips[0].clip.id;
+    const clip = this.topClips[0].clip;
+    const clipPath = this.topClips[0].localFilePath;
+
 
     // Read the posted clip IDs from the file into a Set
     let postedClips;
@@ -217,18 +224,14 @@ class TwitchClipDownloader {
       }
     }
 
-    let clip = this.topClips[0].clip;
-    const clipID = this.topClips[0].clip.id;
-
     // if postedClipsFile already has the posted clip then remove it from this.topClipsPath.
     if (postedClips.has(clipID)) {
       console.log('Clip already posted.                            Skipping upload.');
-      this.topClips.shift();
+      this.deleteClipById(clipID);
       return;
     }
 
     // Treat this.topClips like a queue
-    const clipPath = this.topClips[0].localFilePath;
 
     const { size } = fs.statSync(clipPath);
     console.log('Uploading video of size', (size / 1000000), 'megabytes');
@@ -240,7 +243,7 @@ class TwitchClipDownloader {
     // Upload the video
     const media_id = await this.userClient.v1.uploadMedia(clipPath);
     // Tweet the video
-    const newTweet = await this.userClient.v2.tweet(this.topClips[0].clip.title, {
+    const newTweet = await this.userClient.v2.tweet(clip.title, {
       media: { media_ids: [media_id] }
     });
     console.log('Tweet ID:', newTweet);
@@ -250,10 +253,23 @@ class TwitchClipDownloader {
     // Then write the Set back to the file
     fs.appendFile(this.postedClipsFile, clipID + '\n', (err) => { if (err) throw err; });
     console.log('Wrote to file:', this.postedClipsFile);
-    this.topClips.shift();
+    this.deleteClipById(clipID);
 
     // Fulfill the promise
     return newTweet;
+  }
+
+  deleteClipById(clipIDToDelete) {
+    // Search for the clip with the specified ID
+    const index = this.topClips.findIndex(({ clip }) => clip.id === clipIDToDelete);
+  
+    // If the clip is found, delete it from the array
+    if (index !== -1) {
+      this.topClips.splice(index, 1);
+      console.log(`Clip with ID: ${clipIDToDelete} deleted from topClips.`);
+    } else {
+      console.log(`Clip with ID: ${clipIDToDelete} not found in topClips.`);
+    }
   }
 }
 
@@ -261,11 +277,18 @@ const twitterClients = ['XQC', 'NMPLOL', 'KAICENAT', 'HASANABI', 'MIZKIF'];
 // not on Twitch ----> ADINROSS, ISHOWSPEED, JIDION, DESTINY
 const streamers = ['xqc', 'nmplol', 'kaicenat', 'hasanabi', 'mizkif'];
 
-const xqc = new TwitchClipDownloader('XQC', 'xqc', '0 15 * * *', ['0,25,50 16 * * *']);
-const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '10 15 * * *', ['5,30,55 16 * * *']);
-const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '20 15 * * *', ['10,35,59 16 * * *', '0 17 * * *']);
-const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '30 15 * * *', ['15,40 16 * * *', '5 17 * * *']);
-const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '40 15 * * *', ['20,45 16 * * *', '10 17 * * *']);
+const xqc = new TwitchClipDownloader('XQC', 'xqc', '10 15 * * *', ['0 17 * * *', '0 18 * * *', '0 19 * * *']);
+const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '20 15 * * *', ['10 17 * * *', '10 18 * * *', '10 19 * * *']);
+const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '30 15 * * *', ['20 17 * * *', '20 18 * * *', '20 19 * * *']);
+const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '40 15 * * *', ['30 17 * * *', '30 18 * * *', '30 19 * * *']);
+const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '50 15 * * *', ['40 17 * * *', '40 18 * * *', '40 19 * * *']);
+
+// (async () => {
+//   await xqc.getTwitchClips('xqc');
+//   setTimeout(async () => {
+//     await xqc.postToTwitter(); await xqc.postToTwitter(); await xqc.postToTwitter();
+//   }, 10000);
+// })();
 
 // const xqc = new TwitchClipDownloader('XQC', 'xqc', '10 2 * * *', ['0,25,50 3 * * *']);
 // const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '20 2 * * *', ['5,30,55 3 * * *']);
