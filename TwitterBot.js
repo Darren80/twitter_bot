@@ -74,7 +74,7 @@ class TwitchClipDownloader {
     }, { timezone: "Etc/GMT" });
 
     // Dry run
-    this.dryRun(streamerName);
+    // this.dryRun(streamerName);
   }
 
   async dryRun(streamerName) {
