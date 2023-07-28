@@ -33,7 +33,7 @@ class TwitchClipDownloader {
     this.client_id = process.env.REACT_APP_TWITCH_CLIENT_ID;
     this.accessToken = '';
     this.userID = '';
-    this.numberOfClipsToUpload = 3;
+    this.numberOfClipsToUpload = 10;
     this.userClient = [];
     this.postedClipsFile = path.join(__dirname, '/postedClips.txt');
     this.topClips = [];
@@ -74,12 +74,12 @@ class TwitchClipDownloader {
     }, { timezone: "Etc/GMT" });
 
     // Dry run
-    // this.dryRun(streamerName);
+    this.dryRun(streamerName);
   }
 
   async dryRun(streamerName) {
     await this.getTwitchClips(streamerName);
-    await this.postToTwitter();
+    // await this.postToTwitter();
   }
 
   async setupTwitterClient(twitterClient) {
