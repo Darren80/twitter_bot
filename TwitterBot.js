@@ -33,7 +33,7 @@ class TwitchClipDownloader {
     this.client_id = process.env.REACT_APP_TWITCH_CLIENT_ID;
     this.accessToken = '';
     this.userID = '';
-    this.numberOfClipsToUpload = 2;
+    this.numberOfClipsToUpload = 3;
     this.userClient = [];
     this.postedClipsFile = path.join(__dirname, '/postedClips.txt');
     this.topClips = [];
@@ -47,6 +47,7 @@ class TwitchClipDownloader {
     this.downloadClip = this.downloadClip.bind(this);
     this.postToTwitter = this.postToTwitter.bind(this);
     this.deleteClipById = this.deleteClipById.bind(this);
+    this.dryRun = this.dryRun.bind(this);
 
     this.isPosting = false;
     this.isPostingClips = [];
@@ -71,6 +72,14 @@ class TwitchClipDownloader {
     cron.schedule(downloadTime, () => {
       this.getTwitchClips(streamerName);
     }, { timezone: "Etc/GMT" });
+
+    // Dry run
+    this.dryRun(streamerName);
+  }
+
+  async dryRun(streamerName) {
+    await this.getTwitchClips(streamerName);
+    await this.postToTwitter();
   }
 
   async setupTwitterClient(twitterClient) {
@@ -122,7 +131,7 @@ class TwitchClipDownloader {
     });
     const data = await response.json();
 
-    this.getMostViewedClips(data.data);
+    await this.getMostViewedClips(data.data);
   }
 
   async getMostViewedClips(clips) {
@@ -157,7 +166,10 @@ class TwitchClipDownloader {
 
     // console.log(clip);
 
-    // If the directory doesn't exist, create it
+    // If the vids directory doesn't exist, create it
+    if (!fs.existsSync(path.join(__dirname, '/vids'))) { fs.mkdirSync(path.join(__dirname, '/vids')); }
+
+    // If the streamer directory doesn't exist, create it
     if (!fs.existsSync(path.join(__dirname, `/vids/${clip.broadcaster_name}`))) { fs.mkdirSync(path.join(__dirname, `/vids/${clip.broadcaster_name}`)); }
 
     // console.log('\nclip: ', clip, '\n');
@@ -247,7 +259,7 @@ class TwitchClipDownloader {
     let newTweet;
     try {
       // Tweet the video
-      const newTweet = await this.userClient.v2.tweet(clip.title, {
+      newTweet = await this.userClient.v2.tweet(clip.title, {
         media: { media_ids: [media_id] }
       });
       console.log('Tweet ID:', newTweet);
@@ -285,17 +297,17 @@ const twitterClients = ['XQC', 'NMPLOL', 'KAICENAT', 'HASANABI', 'MIZKIF'];
 // not on Twitch ----> ADINROSS, ISHOWSPEED, JIDION, DESTINY
 const streamers = ['xqc', 'nmplol', 'kaicenat', 'hasanabi', 'mizkif'];
 
-const xqc = new TwitchClipDownloader('XQC', 'xqc', '0 16 * * *', ['0 17 * * *', '0 18 * * *', '0 19 * * *']);
-const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '10 16 * * *', ['10 17 * * *', '10 18 * * *', '10 19 * * *']);
-const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '20 16 * * *', ['20 17 * * *', '20 18 * * *', '20 19 * * *']);
-const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '30 16 * * *', ['30 17 * * *', '30 18 * * *', '30 19 * * *']);
-const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '40 16 * * *', ['45 17 * * *', '40 18 * * *', '40 19 * * *']);
+// const xqc = new TwitchClipDownloader('XQC', 'xqc', '0 16 * * *', ['0 17 * * *', '0 18 * * *', '0 19 * * *']);
+// const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '10 16 * * *', ['10 17 * * *', '10 18 * * *', '10 19 * * *']);
+// const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '20 16 * * *', ['20 17 * * *', '20 18 * * *', '20 19 * * *']);
+// const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '30 16 * * *', ['30 17 * * *', '30 18 * * *', '30 19 * * *']);
+// const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '40 16 * * *', ['45 17 * * *', '40 18 * * *', '40 19 * * *']);
 
-// const xqc = new TwitchClipDownloader('XQC', 'xqc', '* * * * *', ['12 17 * * *', '0 18 * * *', '0 19 * * *']);
-// const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '* * * * *', ['10 17 * * *', '10 18 * * *', '10 19 * * *']);
-// const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '* * * * *', ['20 17 * * *', '20 18 * * *', '20 19 * * *']);
-// const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '* * * * *', ['30 17 * * *', '30 18 * * *', '30 19 * * *']);
-// const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '* * * * *', ['45 17 * * *', '40 18 * * *', '40 19 * * *']);
+const xqc = new TwitchClipDownloader('XQC', 'xqc', '* * * * *', ['18 17 * * *', '0 18 * * *', '0 19 * * *']);
+const nmplol = new TwitchClipDownloader('NMPLOL', 'nmplol', '* * * * *', ['35 17 * * *', '10 18 * * *', '10 19 * * *']);
+const kaicenat = new TwitchClipDownloader('KAICENAT', 'kaicenat', '* * * * *', ['40 17 * * *', '20 18 * * *', '20 19 * * *']);
+const hasanabi = new TwitchClipDownloader('HASANABI', 'hasanabi', '* * * * *', ['45 17 * * *', '30 18 * * *', '30 19 * * *']);
+const mizkif = new TwitchClipDownloader('MIZKIF', 'mizkif', '* * * * *', ['50 17 * * *', '40 18 * * *', '40 19 * * *']);
 
 // (async () => {
 //   await xqc.getTwitchClips('xqc');
