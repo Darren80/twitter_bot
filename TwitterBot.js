@@ -74,12 +74,12 @@ class TwitchClipDownloader {
     }, { timezone: "Etc/GMT" });
 
     // Dry run
-    // this.dryRun(streamerName);
+    this.dryRun(streamerName);
   }
 
   async dryRun(streamerName) {
     await this.getTwitchClips(streamerName);
-    await this.postToTwitter();
+    // await this.postToTwitter();
   }
 
   async setupTwitterClient(twitterClient) {
