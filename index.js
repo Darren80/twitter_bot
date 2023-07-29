@@ -21,12 +21,14 @@ app.use((req, res, next) => {
 //     res.send('You ' + req.ip + ' refreshed the bot');
 //     console.log(req.ip + ' refreshed the bot');
 // });
-
-
-// Health check endpoint
-app.get('/refresh', (req, res) => {
+app.get('/keepalive', (req, res) => {
     res.send('You ' + req.headers['x-forwarded-for'] || req.socket.remoteAddress  + ' refreshed the bot');
     console.log(req.headers['x-forwarded-for'] || req.socket.remoteAddress  + ' refreshed the bot');
+});
+
+// Health check endpoint
+app.get('/hearbeat', (req, res) => {
+    res.send('I am alive');
 });
 
 // Start the twitter bot
