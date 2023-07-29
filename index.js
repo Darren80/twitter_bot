@@ -25,8 +25,8 @@ app.get('/', (req, res) => {
 
 // Health check endpoint
 app.get('/refresh', (req, res) => {
-    res.send('You ' + req.ip + ' refreshed the bot');
-    console.log(req.ip + ' refreshed the bot');
+    res.send('You ' + req.headers['x-forwarded-for'] || req.socket.remoteAddress  + ' refreshed the bot');
+    console.log(req.headers['x-forwarded-for'] || req.socket.remoteAddress  + ' refreshed the bot');
 });
 
 // Start the twitter bot
@@ -39,3 +39,5 @@ app.get('/start', (req, res) => {
 app.listen(port, () => {
     console.log(`Listening on port ${port}`);
 });
+
+console.log('version 1.2.0');
