@@ -18,9 +18,9 @@ app.use((req, res, next) => {
 );
 
 // Health check endpoint
-app.get('/', (req, res) => {
-    res.send('Hello World!');
-    console.log('Hello World!');
+app.get('/refresh', (req, res) => {
+    res.send('You ' + req.ip + ' refreshed the bot');
+    console.log(req.ip + ' refreshed the bot');
 });
 
 // Start the twitter bot
