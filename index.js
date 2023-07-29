@@ -27,7 +27,7 @@ app.get('/keepalive', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/hearbeat', (req, res) => {
+app.get('/heartbeat', (req, res) => {
     res.send('I am alive');
 });
 
@@ -41,5 +41,3 @@ app.get('/start', (req, res) => {
 app.listen(port, () => {
     console.log(`Listening on port ${port}`);
 });
-
-console.log('version 1.2.0');
