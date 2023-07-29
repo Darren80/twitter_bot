@@ -17,6 +17,12 @@ app.use((req, res, next) => {
 }
 );
 
+app.get('/', (req, res) => {
+    res.send('You ' + req.ip + ' refreshed the bot');
+    console.log(req.ip + ' refreshed the bot');
+});
+
+
 // Health check endpoint
 app.get('/refresh', (req, res) => {
     res.send('You ' + req.ip + ' refreshed the bot');
