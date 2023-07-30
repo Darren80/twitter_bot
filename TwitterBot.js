@@ -44,7 +44,7 @@ class TwitchClipDownloader {
     this.getUserID = this.getUserID.bind(this);
     this.getClips = this.getClips.bind(this);
     this.getMostViewedClips = this.getMostViewedClips.bind(this);
-    this.downloadClips = this.downloadClips.bind(this);
+    // this.downloadClips = this.downloadClips.bind(this);
     this.downloadClip = this.downloadClip.bind(this);
     this.postToTwitter = this.postToTwitter.bind(this);
     this.deleteClipById = this.deleteClipById.bind(this);
