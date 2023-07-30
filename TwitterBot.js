@@ -269,16 +269,31 @@ class TwitchClipDownloader {
     const media_id = await this.userClient.v1.uploadMedia(clipPath);
 
     let newTweet;
-    try {
-      // Tweet the video
-      newTweet = await this.userClient.v2.tweet(clip.title, {
-        media: { media_ids: [media_id] }
-      });
-      console.log('Tweet ID:', newTweet);
-    } catch (err) {
-      console.log('Error:', err);
-      return;
+    let retries = 3; // Specify the number of retries
+    while (retries > 0) {
+      try {
+        // Tweet the video
+        newTweet = await this.userClient.v2.tweet(clip.title, {
+          media: { media_ids: [media_id] }
+        });
+        // Delete video from local system after successful upload
+        fs.unlinkSync(clipPath);
+        console.log('Tweet ID:', newTweet);
+
+        // If the tweet was successful, break the loop
+        break;
+      } catch (err) {
+        console.log('Error:', err);
+        retries--; // Decrease the retry counter
+
+        if (retries > 0) {
+          console.log(`Retrying... (${retries} attempts left)`);
+        } else {
+          console.log('Failed after 3 attempts');
+        }
+      }
     }
+
 
     // Add the posted clip to the Set
     postedClips.add(clipID);
