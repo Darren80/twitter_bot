@@ -22,7 +22,7 @@ app.use((req, res, next) => {
 //     console.log(req.ip + ' refreshed the bot');
 // });
 app.get('/keepalive', (req, res) => {
-    res.send('You ' + req.headers['x-forwarded-for'] || req.socket.remoteAddress  + ' refreshed the bot');
+    res.send('You ', req.headers['x-forwarded-for'] || req.socket.remoteAddress , ' refreshed the bot');
     console.log(req.headers['x-forwarded-for'] || req.socket.remoteAddress  + ' refreshed the bot');
 });
 

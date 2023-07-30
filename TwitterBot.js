@@ -36,6 +36,7 @@ class TwitchClipDownloader {
     this.numberOfClipsToUpload = 3;
     this.userClient = [];
     this.postedClipsFile = path.join(__dirname, '/postedClips.txt');
+    this.topClips0 = [];
     this.topClips = [];
 
     this.setupTwitterClient = this.setupTwitterClient.bind(this);
@@ -60,6 +61,7 @@ class TwitchClipDownloader {
       console.log(schedule);
       cron.schedule(schedule, () => {
         if (!this.isPosting) {
+          this.downloadClip(this.topClips0.shift());
           this.isPosting = true;
           this.postToTwitter();
           this.isPosting = false;
@@ -74,12 +76,12 @@ class TwitchClipDownloader {
     }, { timezone: "Etc/GMT" });
 
     // Dry run
-    // this.dryRun(streamerName);
+    this.dryRun(streamerName);
   }
 
   async dryRun(streamerName) {
     await this.getTwitchClips(streamerName);
-    // await this.postToTwitter();
+    await this.postToTwitter();
   }
 
   async setupTwitterClient(twitterClient) {
@@ -136,15 +138,14 @@ class TwitchClipDownloader {
 
   async getMostViewedClips(clips) {
     clips.sort((a, b) => b.views - a.views);
-    const topClips = clips.slice(0, this.numberOfClipsToUpload);
-    await this.downloadClips(topClips);
+    this.topClips0 = clips.slice(0, this.numberOfClipsToUpload);
   }
 
-  async downloadClips(clips) {
-    for (let i = 0; i < clips.length; i++) {
-      await this.downloadClip(clips[i]);
-    }
-  }
+  // async downloadClips(clips) {
+  //   for (let i = 0; i < clips.length; i++) {
+  //     await this.downloadClip(clips[i]);
+  //   }
+  // }
 
   async downloadClip(clip) {
     const vodUrl = clip.thumbnail_url.split('-preview', 1)[0] + '.mp4'; console.log(vodUrl);
@@ -156,7 +157,18 @@ class TwitchClipDownloader {
     });
 
     const totalBytes = parseInt(response.headers['content-length'], 10);
-    const progressBar = new ProgressBar('-> downloading [:bar] :percent :etas', {
+    let downloadedBytes = 0;
+    const startTime = Date.now();
+
+    // Define custom token for bytes per second
+    ProgressBar.prototype.otp = {
+      speed: function () {
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        return (downloadedBytes / elapsedSeconds).toFixed(2) + ' B/s';
+      }
+    };
+
+    const progressBar = new ProgressBar('-> downloading [:bar] :percent :etas at :speed', {
       width: 40,
       complete: '=',
       incomplete: ' ',
@@ -188,7 +200,7 @@ class TwitchClipDownloader {
 
     const fileStream = fs.createWriteStream(localFilePath);
 
-    response.data.on('data', (chunk) => progressBar.tick(chunk.length));
+    response.data.on('data', (chunk) => { progressBar.tick(chunk.length); downloadedBytes += chunk.length; });
     response.data.pipe(fileStream);
 
     response.data.on('error', console.error);
