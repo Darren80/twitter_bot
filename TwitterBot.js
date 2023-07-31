@@ -59,9 +59,9 @@ class TwitchClipDownloader {
     // The postTime should an array with items in the format '00 00 * * *'
     for (const schedule of postTime) {
       console.log(schedule);
-      cron.schedule(schedule, () => {
+      cron.schedule(schedule, async () => {
         if (!this.isPosting) {
-          this.downloadClip(this.topClips0.shift());
+          await this.downloadClip(this.topClips0.shift());
           this.isPosting = true;
           this.postToTwitter();
           this.isPosting = false;
